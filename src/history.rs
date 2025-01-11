@@ -1930,6 +1930,12 @@ impl HistorySearch {
         }
     }
 
+    /// Move current index so there is `value` matches in between new and old indexes
+    pub fn search_forward(&mut self, value: usize) {
+        while self.go_to_next_match(SearchDirection::Forward) && self.deduper.len() <= value {}
+        self.deduper.clear();
+    }
+
     /// Returns the current search result item.
     ///
     /// # Panics
