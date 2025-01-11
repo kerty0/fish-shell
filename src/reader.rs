@@ -5084,7 +5084,7 @@ fn history_pager_search(
     }
     // When searching, first we need to find the element before first shown.
     search.search_forward(match direction {
-        SearchDirection::Forward => page_size,
+        SearchDirection::Forward | SearchDirection::ForwardLast => page_size,
         SearchDirection::Backward => 0,
     });
     let first_index = search.current_index();
@@ -5124,7 +5124,9 @@ impl ReaderData {
             HistoryPagerInvocation::Advance => {
                 let history_pager = self.history_pager.as_ref().unwrap();
                 index = match direction {
-                    SearchDirection::Forward => history_pager.start + 1,
+                    SearchDirection::Forward | SearchDirection::ForwardLast => {
+                        history_pager.start + 1
+                    }
                     SearchDirection::Backward => history_pager.end - 1,
                 }
             }
@@ -5152,6 +5154,14 @@ impl ReaderData {
             }
             let history_size = zelf.history.size();
             let history_pager = zelf.history_pager.as_mut().unwrap();
+            if result.matched_commands.is_empty() && result.range != (0..history_size + 1) {
+                history_pager.start = history_size;
+                zelf.fill_history_pager(
+                    HistoryPagerInvocation::Advance,
+                    SearchDirection::ForwardLast,
+                );
+                return;
+            }
             assert!(result.range.start < result.range.end);
             *history_pager = result.range;
             zelf.pager.extra_progress_text =
@@ -5173,6 +5183,8 @@ impl ReaderData {
                 zelf.pager
                     .set_selected_completion_index(old_pager_index.unwrap());
                 zelf.pager_selection_changed();
+            } else if direction == SearchDirection::ForwardLast {
+                zelf.select_completion_in_direction(SelectionMotion::Prev, true);
             } else {
                 zelf.select_completion_in_direction(SelectionMotion::Next, true);
             }
