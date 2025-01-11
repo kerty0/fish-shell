@@ -116,6 +116,7 @@ pub enum PersistenceMode {
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SearchDirection {
+    ForwardLast,
     Forward,
     Backward,
 }
@@ -1884,7 +1885,7 @@ impl HistorySearch {
     pub fn go_to_next_match(&mut self, direction: SearchDirection) -> bool {
         let invalid_index = match direction {
             SearchDirection::Backward => usize::MAX,
-            SearchDirection::Forward => 0,
+            SearchDirection::Forward | SearchDirection::ForwardLast => 0,
         };
 
         if self.current_index == invalid_index {
@@ -1896,7 +1897,7 @@ impl HistorySearch {
             // Backwards means increasing our index.
             match direction {
                 SearchDirection::Backward => index += 1,
-                SearchDirection::Forward => index -= 1,
+                SearchDirection::Forward | SearchDirection::ForwardLast => index -= 1,
             };
 
             if self.current_index == invalid_index {
@@ -1907,7 +1908,7 @@ impl HistorySearch {
             let Some(item) = self.history.item_at_index(index) else {
                 self.current_index = match direction {
                     SearchDirection::Backward => self.history.size() + 1,
-                    SearchDirection::Forward => 0,
+                    SearchDirection::Forward | SearchDirection::ForwardLast => 0,
                 };
                 self.current_item = None;
                 return false;
