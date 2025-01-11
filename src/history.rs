@@ -1905,6 +1905,11 @@ impl HistorySearch {
 
             // We're done if it's empty or we cancelled.
             let Some(item) = self.history.item_at_index(index) else {
+                self.current_index = match direction {
+                    SearchDirection::Backward => self.history.size() + 1,
+                    SearchDirection::Forward => 0,
+                };
+                self.current_item = None;
                 return false;
             };
 
