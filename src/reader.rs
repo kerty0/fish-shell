@@ -522,7 +522,7 @@ pub struct ReaderData {
     /// The history search.
     history_search: ReaderHistorySearch,
     /// In-pager history search.
-    history_pager: Option<Range<usize>>,
+    history_pager: Option<HistoryPager>,
 
     /// The cursor selection mode.
     cursor_selection_mode: CursorSelectionMode,
@@ -2677,7 +2677,7 @@ impl<'a> Reader<'a> {
             }
             rl::PagerToggleSearch => {
                 if let Some(history_pager) = &self.history_pager {
-                    if history_pager.start == 0 {
+                    if history_pager.range.start == 0 {
                         self.flash();
                         return;
                     }
@@ -2943,7 +2943,7 @@ impl<'a> Reader<'a> {
             }
             rl::HistoryPager => {
                 if let Some(history_pager) = &self.history_pager {
-                    if history_pager.end > self.history.size() {
+                    if history_pager.range.end > self.history.size() {
                         self.flash();
                         return;
                     }
@@ -2958,7 +2958,10 @@ impl<'a> Reader<'a> {
                 self.cycle_command_line = self.command_line.text().to_owned();
                 self.cycle_cursor_pos = self.command_line.position();
 
-                self.history_pager = Some(0..1);
+                self.history_pager = Some(HistoryPager {
+                    range: 0..1,
+                    indexes: vec![],
+                });
                 // Update the pager data.
                 self.pager.set_search_field_shown(true);
                 self.pager.set_prefix(
@@ -5038,6 +5041,7 @@ impl<'a> Reader<'a> {
 
 struct HistoryPagerResult {
     matched_commands: Vec<Completion>,
+    commands_indexes: Vec<usize>,
     range: Range<usize>,
     first_shown: usize,
 }
@@ -5047,6 +5051,11 @@ enum HistoryPagerInvocation {
     Anew,
     Advance,
     Refresh,
+}
+
+struct HistoryPager {
+    range: Range<usize>,
+    indexes: Vec<usize>,
 }
 
 fn history_pager_search(
@@ -5063,6 +5072,7 @@ fn history_pager_search(
     // (subtract 2 for the search line and the prompt)
     let page_size = usize::try_from(cmp::max(termsize_last().height / 2 - 2, 12)).unwrap();
     let mut completions = Vec::with_capacity(page_size);
+    let mut indexes = Vec::with_capacity(page_size);
     let guard = &mut history.imp();
     let mut search = HistorySearch::new_with(
         history.clone(),
@@ -5098,6 +5108,7 @@ fn history_pager_search(
     let first_shown = search.current_index();
     while completions.len() < page_size && next_match_found {
         let item = search.current_item();
+        indexes.push(search.current_index());
         completions.push(Completion::new(
             item.str().to_owned(),
             L!("").to_owned(),
@@ -5109,6 +5120,7 @@ fn history_pager_search(
     let last_index = search.current_index();
     HistoryPagerResult {
         matched_commands: completions,
+        commands_indexes: indexes,
         range: first_index..last_index,
         first_shown,
     }
@@ -5122,25 +5134,27 @@ impl ReaderData {
     ) {
         let index;
         let mut old_pager_index = None;
+        let history_pager = self.history_pager.as_ref().unwrap();
         match why {
             HistoryPagerInvocation::Anew => {
                 assert_eq!(direction, SearchDirection::Backward);
-                index = 0;
+                index = match self.pager.selected_completion_idx {
+                    Some(index) => history_pager.indexes[index] - 1,
+                    None => 0,
+                }
             }
             HistoryPagerInvocation::Advance => {
-                let history_pager = self.history_pager.as_ref().unwrap();
                 index = match direction {
                     SearchDirection::Forward | SearchDirection::ForwardLast => {
-                        history_pager.start + 1
+                        history_pager.range.start + 1
                     }
-                    SearchDirection::Backward => history_pager.end - 1,
+                    SearchDirection::Backward => history_pager.range.end - 1,
                 }
             }
             HistoryPagerInvocation::Refresh => {
                 // Make backward search from current position
-                let history_pager = self.history_pager.as_ref().unwrap();
                 direction = SearchDirection::Backward;
-                index = history_pager.start;
+                index = history_pager.range.start;
                 old_pager_index = Some(self.pager.selected_completion_index());
             }
         }
@@ -5161,7 +5175,7 @@ impl ReaderData {
             let history_size = zelf.history.size();
             let history_pager = zelf.history_pager.as_mut().unwrap();
             if result.matched_commands.is_empty() && result.range != (0..history_size + 1) {
-                history_pager.start = history_size;
+                history_pager.range.start = history_size;
                 zelf.fill_history_pager(
                     HistoryPagerInvocation::Advance,
                     SearchDirection::ForwardLast,
@@ -5169,21 +5183,23 @@ impl ReaderData {
                 return;
             }
             assert!(result.range.start < result.range.end);
-            *history_pager = result.range;
-            zelf.pager.extra_progress_text =
-                if !result.matched_commands.is_empty() && *history_pager != (0..history_size + 1) {
-                    wgettext_fmt!(
-                        "Items %lu to %lu of %lu",
-                        match history_pager.start {
-                            0 => 1,
-                            _ => result.first_shown,
-                        },
-                        history_pager.end - 1,
-                        history_size
-                    )
-                } else {
-                    L!("").to_owned()
-                };
+            history_pager.range = result.range;
+            history_pager.indexes = result.commands_indexes;
+            zelf.pager.extra_progress_text = if !result.matched_commands.is_empty()
+                && history_pager.range != (0..history_size + 1)
+            {
+                wgettext_fmt!(
+                    "Items %lu to %lu of %lu",
+                    match history_pager.range.start {
+                        0 => 1,
+                        _ => result.first_shown,
+                    },
+                    history_pager.range.end - 1,
+                    history_size
+                )
+            } else {
+                L!("").to_owned()
+            };
             zelf.pager.set_completions(&result.matched_commands, false);
             if why == HistoryPagerInvocation::Refresh {
                 zelf.pager

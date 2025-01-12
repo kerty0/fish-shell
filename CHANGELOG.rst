@@ -19,6 +19,7 @@ Interactive improvements
   This mitigates a security issue where a command like ``cat malicious-file.txt`` could write terminal escape codes prompting the terminal to write arbitrary text to fish's standard input.
   Such a malicious file can still potentially insert arbitrary text into the command line but can no longer execute it directly (:issue:`10987`).
 - The history search now preserves ordering between :kbd:`ctrl-s` forward and :kbd:`ctrl-r` backward searches.
+- Now when you change the history search field, the search will start from the selected item.
 
 New or improved bindings
 ^^^^^^^^^^^^^^^^^^^^^^^^
