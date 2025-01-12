@@ -5063,6 +5063,7 @@ fn history_pager_search(
     // (subtract 2 for the search line and the prompt)
     let page_size = usize::try_from(cmp::max(termsize_last().height / 2 - 2, 12)).unwrap();
     let mut completions = Vec::with_capacity(page_size);
+    let guard = &mut history.imp();
     let mut search = HistorySearch::new_with(
         history.clone(),
         search_string.to_owned(),
@@ -5070,7 +5071,9 @@ fn history_pager_search(
         smartcase_flags(search_string),
         history_index,
     );
-    if !search.go_to_next_match(direction) && !parse_util_contains_wildcards(search_string) {
+    if !search.go_to_next_match_lock(guard, direction)
+        && !parse_util_contains_wildcards(search_string)
+    {
         // If there were no matches, and the user is not intending for
         // wildcard search, try again with subsequence search.
         search = HistorySearch::new_with(
@@ -5080,15 +5083,18 @@ fn history_pager_search(
             smartcase_flags(search_string),
             history_index,
         );
-        search.go_to_next_match(direction);
+        search.go_to_next_match_lock(guard, direction);
     }
     // When searching, first we need to find the element before first shown.
-    search.search_forward(match direction {
-        SearchDirection::Forward | SearchDirection::ForwardLast => page_size,
-        SearchDirection::Backward => 0,
-    });
+    search.search_forward(
+        guard,
+        match direction {
+            SearchDirection::Forward | SearchDirection::ForwardLast => page_size,
+            SearchDirection::Backward => 0,
+        },
+    );
     let first_index = search.current_index();
-    let mut next_match_found = search.go_to_next_match(SearchDirection::Backward);
+    let mut next_match_found = search.go_to_next_match_lock(guard, SearchDirection::Backward);
     let first_shown = search.current_index();
     while completions.len() < page_size && next_match_found {
         let item = search.current_item();
@@ -5098,7 +5104,7 @@ fn history_pager_search(
             StringFuzzyMatch::exact_match(),
             CompleteFlags::REPLACES_LINE | CompleteFlags::DONT_ESCAPE | CompleteFlags::DONT_SORT,
         ));
-        next_match_found = search.go_to_next_match(SearchDirection::Backward);
+        next_match_found = search.go_to_next_match_lock(guard, SearchDirection::Backward);
     }
     let last_index = search.current_index();
     HistoryPagerResult {

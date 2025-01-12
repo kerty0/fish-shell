@@ -364,7 +364,7 @@ impl HistoryItem {
 
 static HISTORIES: Mutex<BTreeMap<WString, Arc<History>>> = Mutex::new(BTreeMap::new());
 
-struct HistoryImpl {
+pub struct HistoryImpl {
     /// The name of this list. Used for picking a suitable filename and for switching modes.
     name: WString,
     /// New items. Note that these are NOT discarded on save. We need to keep these around so we can
@@ -1512,7 +1512,7 @@ fn should_import_bash_history_line(line: &wstr) -> bool {
 pub struct History(Mutex<HistoryImpl>);
 
 impl History {
-    fn imp(&self) -> MutexGuard<HistoryImpl> {
+    pub fn imp(&self) -> MutexGuard<HistoryImpl> {
         self.0.lock().unwrap()
     }
 
@@ -1883,6 +1883,14 @@ impl HistorySearch {
 
     /// Finds the next search result. Returns `true` if one was found.
     pub fn go_to_next_match(&mut self, direction: SearchDirection) -> bool {
+        self.go_to_next_match_lock(&mut self.history.clone().imp(), direction)
+    }
+
+    pub fn go_to_next_match_lock(
+        &mut self,
+        guard: &mut MutexGuard<HistoryImpl>,
+        direction: SearchDirection,
+    ) -> bool {
         let invalid_index = match direction {
             SearchDirection::Backward => usize::MAX,
             SearchDirection::Forward | SearchDirection::ForwardLast => 0,
@@ -1905,9 +1913,9 @@ impl HistorySearch {
             }
 
             // We're done if it's empty or we cancelled.
-            let Some(item) = self.history.item_at_index(index) else {
+            let Some(item) = guard.item_at_index(index).map(Cow::into_owned) else {
                 self.current_index = match direction {
-                    SearchDirection::Backward => self.history.size() + 1,
+                    SearchDirection::Backward => guard.size() + 1,
                     SearchDirection::Forward | SearchDirection::ForwardLast => 0,
                 };
                 self.current_item = None;
@@ -1932,8 +1940,10 @@ impl HistorySearch {
     }
 
     /// Move current index so there is `value` matches in between new and old indexes
-    pub fn search_forward(&mut self, value: usize) {
-        while self.go_to_next_match(SearchDirection::Forward) && self.deduper.len() <= value {}
+    pub fn search_forward(&mut self, guard: &mut MutexGuard<HistoryImpl>, value: usize) {
+        while self.go_to_next_match_lock(guard, SearchDirection::Forward)
+            && self.deduper.len() <= value
+        {}
         self.deduper.clear();
     }
 
