@@ -280,6 +280,18 @@ with their GitHub account. Currently, tests are triggered upon merging
 the ``master`` branch into ``coverity_scan_master``. Even if you are not
 a fish developer, you can keep an eye on our statistics there.
 
+Debugging
+=========
+
+If you use LLDB, you can import custom summary providers for some of fish's types by running:
+
+::
+
+    command script import /path/to/fish-shell/build_tools/lldb_fish.py
+
+Alternatively, you can add it to ``~/.lldbinit`` (or ``"lldb.launch.initCommands"`` in VSCode),
+to automatically load the summary providers on LLDB startup.
+
 Contributing Translations
 =========================
 
