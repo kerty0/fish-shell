@@ -4,29 +4,24 @@
 isolated-tmux-start
 
 # Implicit interactive but output is redirected.
-isolated-tmux send-keys \
-    '$fish >output' Enter
-tmux-sleep
-isolated-tmux send-keys \
-    'status is-interactive && printf %s i n t e r a c t i v e \n' Enter \
-    C-d
-tmux-sleep
+touch output
+tmux-send '$fish >output' enter
+sleep-until 'cat output' --output 'prompt 1>'
+tmux-send 'status is-interactive && printf %s i n t e r a c t i v e \n' enter ctrl-d
 # Extract the line where command output starts.
-string match <output -r '.*\e\]133;C.*' |
-string escape
+sleep-until 'cat output' --regex '\e\]133;C'
+string match <output -re '\e\]133;C'
 # CHECK: {{.*}}interactive{{$}}
 
-isolated-tmux send-keys \
-    '$fish -c "read; cat"' Enter
-tmux-sleep
-isolated-tmux send-keys \
-    'read-value ' Enter
-tmux-sleep
-isolated-tmux send-keys cat1 Enter
-tmux-sleep
-isolated-tmux send-keys cat2 Enter
-tmux-sleep
-isolated-tmux capture-pane -p -S 2
+tmux-send '$fish -c "read; cat"' enter
+tmux-wait 'read>'
+tmux-send 'read-value ' enter
+tmux-wait read-value\nread-value
+tmux-send cat1 enter
+tmux-wait cat1\ncat1
+tmux-send cat2 enter
+tmux-wait cat2\ncat2
+tmux-capture --no-sync -S 2
 # CHECK: read> read-value
 # CHECK: read-value cat1
 # CHECK: cat1

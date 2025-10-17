@@ -6,9 +6,8 @@ isolated-tmux-start -C '
     bind ctrl-g "commandline -i \'echo \'(printf %0(math \$COLUMNS - (string length \'\$ echo \'))d 0)"
 '
 
-isolated-tmux send-keys C-g Enter
-tmux-sleep
-isolated-tmux capture-pane -p | awk 'NR <= 4 {print NR ":" $0}'
+tmux-send ctrl-g Enter
+tmux-capture | awk 'NR <= 4 {print NR ":" $0}'
 
 # CHECK: 1:$ echo 0000000000000000000000000000000000000000000000000000000000000000000000000
 # CHECK: 2:0000000000000000000000000000000000000000000000000000000000000000000000000

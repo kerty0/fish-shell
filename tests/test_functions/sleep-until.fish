@@ -1,5 +1,5 @@
 function sleep-until
-    argparse -N1 -X1 -i -x output,regex -S output= regex= error= -- $argv
+    argparse -i -x output,regex -S output= regex= error= -- $argv
 
     set -l condition
     if set -q _flag_output
@@ -7,13 +7,13 @@ function sleep-until
     else if set -q _flag_regex
         set condition 'string match -qr -- "$_flag_regex"    "$(eval $argv)"'
     else
-        set condition '$argv'
+        set condition $argv
     end
 
     set -q CI; and set -l sleep 0.3
     or set -l sleep 0.1
 
-    for i in (seq 100)
+    for i in (seq 50)
         eval $condition &>/dev/null
         and return
         sleep $sleep

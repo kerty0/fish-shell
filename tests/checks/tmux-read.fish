@@ -1,6 +1,6 @@
 #RUN: %fish %s
 #REQUIRES: command -v tmux
-#REQUIRES: test -z "$CI"
+# #REQUIRES: test -z "$CI"
 
 isolated-tmux-start -C '
     function fish_greeting
@@ -9,9 +9,9 @@ isolated-tmux-start -C '
     end
 '
 
-isolated-tmux send-keys name Enter 'echo foo' Enter
-tmux-sleep
-isolated-tmux capture-pane -p
+tmux-send name enter
+tmux-send 'echo foo' Enter
+tmux-capture
 # CHECK: read> name
 # CHECK: hello name
 # CHECK: prompt 0> echo foo

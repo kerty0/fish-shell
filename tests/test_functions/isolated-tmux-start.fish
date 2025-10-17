@@ -21,9 +21,58 @@ function isolated-tmux-start --wraps fish
         rm -r $tmpdir
     end
 
-    function tmux-sleep
-        set -q CI && sleep 1
-        or sleep 0.3
+    function tmux-timeout
+        sh -c "$argv" &
+        sleep-until "! jobs $last_pid"
+    end
+
+    function tmux-sync
+        isolated-tmux send-keys \u0091sync
+        tmux-timeout tmux -S .tmux-socket wait-for sync
+    end
+
+    function tmux-wait
+        sleep-until "isolated-tmux capture-pane -p" --output "$argv"
+    end
+
+    function tmux-capture
+        argparse -Si no-clear no-sync -- $argv
+
+        set -q _flag_no_sync
+        or tmux-sync
+
+        isolated-tmux capture-pane -p $argv
+
+        set -q _flag_no_sync || set -q _flag_no_clear
+        or isolated-tmux send-keys \u0091clear C-l
+    end
+
+    function tmux-send
+        set -l args
+        for arg in $argv
+            switch $arg
+                case Enter
+                    set -q args[1]
+                    and isolated-tmux send-keys $args
+                    and set args
+                    isolated-tmux send-keys \u0091enter
+                    tmux-timeout tmux -S .tmux-socket wait-for enter
+                    continue
+                case Escape
+                    # Remove ambiguity with alt modifier and \e
+                    set arg \u0091escape
+                case ctrl-c
+                    # Because of enabled ISIG 0x03 not at the end sequence are not reported. 
+                    set arg \u0091clear
+                case "*"
+                    set arg "$(string replace -r -- '^((alt-|shift-)*)ctrl-' '$1C-' $arg)"
+                    set arg "$(string replace -r -- '^((C-|shift-)*)alt-'    '$1M-' $arg)"
+                    set arg "$(string replace -r -- '^((C-|M-)*)shift-'      '$1S-' $arg)"
+            end
+            set -a args $arg
+        end
+        set -q args[1]
+        and isolated-tmux send-keys $args
     end
 
     set -l fish (status fish-path)
@@ -36,6 +85,12 @@ function isolated-tmux-start --wraps fish
         set fish_history ""
         # No transient prompt.
         set fish_transient_prompt 0
+        
+        # bind ctrl-j "commandline -i \\n"
+        bind \u91,c,l,e,a,r clear-commandline
+        bind \u91,e,s,c,a,p,e cancel
+        bind \u91,s,y,n,c "tmux wait-for -S sync"
+        bind \u91,e,n,t,e,r execute "tmux wait-for -S enter"
     ' $argv
     # Set the correct permissions for the newly created socket to allow future connections.
     # This is required at least under WSL or else each invocation will return a permissions error.

@@ -12,11 +12,8 @@ isolated-tmux-start -C '
     bind alt-g "set -e right_prompt" repaint
 '
 
-isolated-tmux send-keys M-g C-l Enter
-tmux-sleep
-isolated-tmux send-keys C-g Enter
-tmux-sleep
-isolated-tmux capture-pane -p | string replace -r '$' '+'
+tmux-send alt-g Enter ctrl-g Enter
+tmux-capture | string replace -r '$' '+'
 #CHECK: +
 #CHECK: right-prompt+
 #CHECK: right-prompt+
@@ -28,9 +25,9 @@ isolated-tmux capture-pane -p | string replace -r '$' '+'
 #CHECK: +
 #CHECK: +
 
-isolated-tmux send-keys M-g Tab Tab
-tmux-sleep
-isolated-tmux capture-pane -p | string replace -r '$' '+'
+tmux-send alt-g Tab Tab
+tmux-wait rows
+tmux-capture | string replace -r '$' '+'
 #CHECK: +
 #CHECK: {{.*}}+
 #CHECK: {{.*}}+
@@ -40,21 +37,15 @@ isolated-tmux capture-pane -p | string replace -r '$' '+'
 #CHECK: {{.*}}+
 #CHECK: {{.*}}+
 #CHECK: {{.*}}+
-#CHECK: {{.*}}+
+#CHECK: rows 1 to {{\d+}} of {{\d+}}+
 
-isolated-tmux send-keys '
+tmux-send '
     function fish_prompt
         echo left-prompt\n
     end
-'
-tmux-sleep
-isolated-tmux send-keys C-l Enter
-tmux-sleep
-isolated-tmux send-keys C-g Enter
-tmux-sleep
-tmux-sleep
-tmux-sleep
-isolated-tmux capture-pane -p | string replace -r '$' '+'
+' Enter ctrl-l
+tmux-send Enter ctrl-g Enter
+tmux-capture | string replace -r '$' '+'
 #CHECK: left-prompt+
 #CHECK: +
 #CHECK: left-prompt+
@@ -66,9 +57,9 @@ isolated-tmux capture-pane -p | string replace -r '$' '+'
 #CHECK: +
 #CHECK: +
 
-isolated-tmux send-keys M-g Tab Tab
-tmux-sleep
-isolated-tmux capture-pane -p | string replace -r '$' '+'
+tmux-send alt-g Tab Tab
+tmux-wait rows
+tmux-capture | string replace -r '$' '+'
 #CHECK: left-prompt+
 #CHECK: +
 #CHECK: {{.*}}+
@@ -78,4 +69,4 @@ isolated-tmux capture-pane -p | string replace -r '$' '+'
 #CHECK: {{.*}}+
 #CHECK: {{.*}}+
 #CHECK: {{.*}}+
-#CHECK: {{.*}}+
+#CHECK: rows 1 to {{\d+}} of {{\d+}}+

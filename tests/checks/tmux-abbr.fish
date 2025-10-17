@@ -9,36 +9,29 @@ isolated-tmux-start -C '
 '
 
 # Expand abbreviations on space.
-isolated-tmux send-keys abbr-test Space arg1 Enter
-tmux-sleep
 # CHECK: prompt {{\d+}}> abbr-test [expanded] arg1
+tmux-send abbr-test Space arg1 Enter
 
 # Expand abbreviations at the cursor when executing.
-isolated-tmux send-keys abbr-test Enter
-tmux-sleep
 # CHECK: prompt {{\d+}}> abbr-test [expanded]
+tmux-send abbr-test Enter
 
 # Use Control+Z right after abbreviation expansion, to keep going without expanding.
-isolated-tmux send-keys abbr-test Space C-z arg2 Enter
-tmux-sleep
 # CHECK: prompt {{\d+}}> abbr-test arg2
+tmux-send abbr-test Space ctrl-z arg2 Enter
 
 # Same with a redundant space; it does not expand abbreviations.
-isolated-tmux send-keys C-u abbr-test Space C-z Space arg2 Enter
-tmux-sleep
 # CHECK: prompt {{\d+}}> abbr-test  arg2
+tmux-send abbr-test Space ctrl-z Space arg2 Enter
 
 # Or use Control+Space to the same effect.
-isolated-tmux send-keys abbr-test C-Space arg3 Enter
-tmux-sleep
 # CHECK: prompt {{\d+}}> abbr-test arg3
+tmux-send abbr-test ctrl-Space arg3 Enter
 
 # Do not expand abbreviation if the cursor is not at the command, even if it's just white space.
 # This makes the behavior more consistent with the above two scenarios.
-isolated-tmux send-keys abbr-test C-Space Enter
-tmux-sleep
 # CHECK: prompt {{\d+}}> abbr-test
-
 # CHECK: prompt {{\d+}}>
+tmux-send abbr-test ctrl-Space Enter
 
-isolated-tmux capture-pane -p
+tmux-capture

@@ -1,22 +1,20 @@
 #RUN: %fish %s
 #REQUIRES: command -v tmux && ! tmux -V | grep -qE '^tmux (next-3.4|3\.[0123][a-z]*($|[.-]))'
 #REQUIRES: command -v less && ! less --version 2>&1 | grep -q BusyBox
-# disable on github actions because it's flakey
-#REQUIRES: test -z "$CI"
+# # disable on github actions because it's flakey
+# #REQUIRES: test -z "$CI"
 
 isolated-tmux-start -C '
+    set -g fish_autosuggestion_enabled 0
     function fish_prompt
         printf "prompt-line-1\\nprompt-line-2> "
         commandline -f repaint
     end
 '
 
-isolated-tmux send-keys ': 1' Enter
-tmux-sleep
-isolated-tmux send-keys ': 3' Enter
-tmux-sleep
-isolated-tmux send-keys ': 5' Enter
-tmux-sleep
+tmux-send ': 1' Enter
+tmux-send ': 3' Enter
+tmux-send ': 5' Enter
 
 # Screen looks like
 
@@ -29,32 +27,29 @@ tmux-sleep
 # [y=6] prompt-line-1
 # [y=7] prompt-line-2>
 
+sleep-until "isolated-tmux display-message -p '#{cursor_y}'" --output 7
 isolated-tmux copy-mode
+sleep-until "isolated-tmux display-message -p '#{copy_cursor_y}'" --output 7
 isolated-tmux send-keys -X previous-prompt
+sleep-until "isolated-tmux display-message -p '#{copy_cursor_y}'" --output 6
 isolated-tmux send-keys -X previous-prompt
-tmux-sleep
+sleep-until "isolated-tmux display-message -p '#{copy_cursor_y}'" --output 4
 isolated-tmux display-message -p '#{copy_cursor_y} #{copy_cursor_line}'
-# CHECK: {{[46]}} prompt-line-1
+# CHECK: 4 prompt-line-1
 
 # Test that the prevd binding does not break the prompt.
-isolated-tmux send-keys Escape
-tmux-sleep
-isolated-tmux send-keys M-left
-tmux-sleep
-isolated-tmux capture-pane -p | tail -n 5
+tmux-send escape
+tmux-send alt-left
+tmux-capture -S 5
 # CHECK: prompt-line-2> : 5
 # CHECK: prompt-line-1
 # CHECK: prompt-line-2>
-# CHECK:
-# CHECK:
 
 # Test repainting after running an external program that uses the alternate screen.
-isolated-tmux send-keys "bind ctrl-r 'echo | less -+F -+X +q; commandline \"echo Hello World\"'" Enter C-l
-isolated-tmux send-keys C-r
-tmux-sleep
-isolated-tmux send-keys Enter
-tmux-sleep
-isolated-tmux capture-pane -p
+tmux-send "bind ctrl-r 'echo | less -+F -+X +q; commandline \"echo Hello World\"'" Enter ctrl-l
+tmux-send ctrl-r
+tmux-send Enter
+tmux-capture
 # CHECK: prompt-line-1
 # CHECK: prompt-line-2> echo Hello World
 # CHECK: Hello World
@@ -62,11 +57,9 @@ isolated-tmux capture-pane -p
 # CHECK: prompt-line-2>
 
 # Test that transient prompt does not break the prompt.
-isolated-tmux send-keys C-l "set fish_transient_prompt 1" Enter
-tmux-sleep
-isolated-tmux send-keys : Enter Enter
-tmux-sleep
-isolated-tmux capture-pane -p
+tmux-send "set fish_transient_prompt 1" Enter
+tmux-send : Enter Enter
+tmux-capture
 # CHECK: prompt-line-1
 # CHECK: prompt-line-2> set fish_transient_prompt 1
 # CHECK: prompt-line-1
