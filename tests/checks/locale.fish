@@ -1,15 +1,5 @@
 # RUN: fish=%fish %fish %s
 
-# A function to display bytes, necessary because GNU and BSD implementations of `od` have different output.
-# We used to use xxd, but it's not available everywhere. See #3797.
-#
-# We use the lowest common denominator format, `-b`, because it should work in all implementations.
-# I wish we could use the `-t` flag but it isn't available in every OS we're likely to run on.
-#
-function display_bytes
-    od -b | sed -e 's/  */ /g' -e 's/  *$//'
-end
-
 # Verify that our UTF-8 locale produces the expected output.
 echo -n A\u00FCA | display_bytes
 #CHECK: 0000000 101 303 274 101
