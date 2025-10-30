@@ -43,7 +43,9 @@ if test $all = yes
             end
         end
     end
-    set fish_files $workspace_root/{benchmarks,build_tools,etc,share}/**.fish
+    set fish_files $workspace_root/{benchmarks,build_tools,etc,share}/**.fish \
+        $workspace_root/tests/checks/tmux-*.fish \
+        $workspace_root/tests/test-functions/*.fish
     set python_files $workspace_root
 else
     # Format the files specified as arguments.
