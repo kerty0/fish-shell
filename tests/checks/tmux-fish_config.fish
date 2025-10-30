@@ -15,7 +15,7 @@ isolated-tmux-start
 isolated-tmux resize-window -x 500
 
 isolated-tmux send-keys "BROWSER=true fish_config" Enter
-sleep-until 'isolated-tmux capture-pane -p | grep ENTER'
+sleep-until "isolated-tmux capture-pane -p" --output="Hit ENTER to stop"
 isolated-tmux capture-pane -p
 # CHECK: prompt 0> BROWSER=true fish_config
 # CHECK: Web config started at file://{{.*}}.html

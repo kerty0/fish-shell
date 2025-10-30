@@ -26,19 +26,6 @@ function isolated-tmux-start --wraps fish
         or sleep 0.3
     end
 
-    function sleep-until
-        set -l cmd $argv[1]
-        set -l i 0
-        while [ $i -lt 100 ] && not eval "$cmd" >/dev/null
-            tmux-sleep
-            set i (math $i + 1)
-        end
-        if [ $i -eq 100 ]
-            printf '%s\n' "timeout waiting for $cmd" >&2
-            exit 1
-        end
-    end
-
     set -l fish (status fish-path)
     set -l size -x 80 -y 10
     isolated-tmux new-session $size -d $fish -C '
@@ -57,12 +44,7 @@ function isolated-tmux-start --wraps fish
     # Resize window so we can attach to tmux session without changing panel size.
     isolated-tmux resize-window $size
 
-    # Loop a bit, until we get an initial prompt.
-    for i in (seq 50)
-        if test -n "$(isolated-tmux capture-pane -p)"
-            return
-        end
-        sleep .2
-    end
-    echo "error: isolated-tmux-start timed out waiting for non-empty first prompt" >&2
+    # Sleep until we get an initial prompt.
+    sleep-until "isolated-tmux capture-pane -p" --regex ".+" \
+        --error "isolated-tmux-start timed out waiting for non-empty first prompt"
 end
