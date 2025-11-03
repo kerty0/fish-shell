@@ -1,7 +1,5 @@
-#RUN: %fish %s
+#RUN: fish=%fish %fish %s
 #REQUIRES: command -v diff
-
-set -l fish (status fish-path)
 
 set -l tmpdir (mktemp -d)
 for bindings in true fish_default_key_bindings fish_vi_key_bindings
@@ -136,7 +134,6 @@ bind \cx\cax
 bind \ef forward-word
 bind \ef
 # CHECK: bind alt-f forward-word
-
 
 # Erasing bindings
 bind --erase tab

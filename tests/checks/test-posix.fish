@@ -1,4 +1,4 @@
-# RUN: %fish %s
+# RUN: fish=%fish %fish %s
 #
 # Tests for the posix-mandated zero and one argument modes for the `test` builtin, aka `[`.
 
@@ -14,7 +14,7 @@ test -d
 echo $status
 #CHECK: 0
 
-test "foo"
+test foo
 echo $status
 #CHECK: 0
 
@@ -26,7 +26,6 @@ test -z "" -a foo
 echo $status
 #CHECK: 0
 
-set -l fish (status fish-path)
 echo 'test foo; test; test -z; test -n; test -d; echo oops' | $fish -d 'deprecated-*' >/dev/null
 #CHECKERR: test: called with one argument. This will return false in future.
 #CHECKERR: Standard input (line 1):
@@ -45,4 +44,3 @@ echo 'test foo; test; test -z; test -n; test -d; echo oops' | $fish -d 'deprecat
 #CHECKERR: Standard input (line 1):
 #CHECKERR: test foo; test; test -z; test -n; test -d; echo oops
 #CHECKERR: ^
-

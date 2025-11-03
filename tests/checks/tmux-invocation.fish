@@ -1,9 +1,7 @@
-#RUN: %fish %s
+#RUN: fish=%fish %fish %s
 #REQUIRES: command -v tmux
 
-isolated-tmux-start -C '
-    set -g fish (status fish-path)
-'
+isolated-tmux-start
 
 # Implicit interactive but output is redirected.
 isolated-tmux send-keys \

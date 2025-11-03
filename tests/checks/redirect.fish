@@ -1,4 +1,4 @@
-#RUN: %fish %s
+#RUN: fish=%fish %fish %s
 
 function outnerr
     command echo out $argv
@@ -7,7 +7,6 @@ end
 
 outnerr 0 &| count
 #CHECK: 2
-
 
 outnerr appendfd 2>>&1
 #CHECK: out appendfd
@@ -154,7 +153,6 @@ echo $status
 set -S foo
 #CHECK: $foo: set in local scope, unexported, with 0 elements
 
-set -l fish (status fish-path)
 $fish --no-config -c 'true <&?fail'
 #CHECKERR: fish: Requested redirection to '?fail', which is not a valid file descriptor
 #CHECKERR: true <&?fail

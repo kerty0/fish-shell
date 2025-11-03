@@ -1,6 +1,4 @@
-#RUN: %fish %s
-
-set -g fish (status fish-path)
+#RUN: fish=%fish %fish %s
 
 commandline --input "echo foo | bar" --is-valid
 and echo Valid

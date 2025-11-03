@@ -1,4 +1,4 @@
-#RUN: %fish %s
+#RUN: fish=%fish %fish %s
 
 echo x-{1}
 #CHECK: x-{1}
@@ -96,7 +96,6 @@ end
 # CHECK: bar
 
 # Trailing tokens
-set -l fish (status fish-path)
 $fish -c '{ :; } true'
 # CHECKERR: fish: '}' does not take arguments. Did you forget a ';'?
 # CHECKERR: { :; } true

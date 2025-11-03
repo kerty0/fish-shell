@@ -1,8 +1,10 @@
-#RUN: %fish %s
+#RUN: fish=%fish %fish %s
 
 # Universal abbreviations are imported.
 set -U _fish_abbr_cuckoo somevalue
-set fish (status fish-path)
+# set -S fish
+# set fish (status fish-path)
+# set -S fish
 $fish -c abbr
 # CHECK: abbr -a -- cuckoo somevalue # imported from a universal variable, see `help abbr`
 
@@ -141,7 +143,7 @@ echo $status
 abbr --query banana --function
 echo $status
 # CHECKERR: abbr: --function: option requires an argument
-# CHECKERR: {{.*}}checks/abbr.fish (line 141):
+# CHECKERR: {{.*}}checks/abbr.fish (line 143):
 # CHECKERR: abbr --query banana --function
 # CHECKERR: ^
 # CHECKERR: (Type 'help abbr' for related documentation)
